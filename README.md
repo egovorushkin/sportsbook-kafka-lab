@@ -117,8 +117,8 @@ sportsbook-reactive-kafka/
 Check off each milestone only after implementing the code yourself, surviving the simulated production incident, and documenting your takeaways in `ARCHITECTURE_DECISIONS.md`.
 
 ### Milestone 1: KRaft Infrastructure & Reactive Producer
-* [ ] Configure `docker-compose.yml` with Apache Kafka 4.4.0 (KRaft combined mode), PostgreSQL 17, Redis 7, Redpanda Console, Prometheus, and Grafana.
-* [ ] Create topic `sportsbook.odds.updates` with **3 partitions**.
+* [x] Configure `docker-compose.yml` with Apache Kafka 4.4.0 (KRaft combined mode), PostgreSQL 17, Redis 7, Redpanda Console, Prometheus, and Grafana.
+* [x] Create topic `sportsbook.odds.updates` with **3 partitions**.
 * [ ] Build `odds-feed-vertx` using `KafkaProducer` with `matchId` as the partition key, `acks=all`, and `enable.idempotence=true`.
 * [ ] **Verification:** Prove in Redpanda Console that all events for a given `matchId` land on the exact same partition while spreading across all 3 partitions.
 
@@ -157,11 +157,18 @@ Check off each milestone only after implementing the code yourself, surviving th
 # Build all modules
 ./gradlew clean build
 
-# Start local infrastructure
+# Set POSTGRES_PASSWORD and GRAFANA_ADMIN_PASSWORD in the environment or an
+# untracked .env file, then start the local infrastructure.
 docker compose up -d
 
 # Inspect Kafka consumer group lag via CLI
-docker exec -it kafka /opt/kafka/bin/kafka-consumer-groups.sh \
-  --bootstrap-server localhost:9092 \
+docker compose exec broker /opt/kafka/bin/kafka-consumer-groups.sh \
+  --bootstrap-server broker:9092 \
   --describe --group betting-engine-group
 ```
+
+The broker advertises `localhost:19092` to host clients and `broker:9092` to
+containers. The topic initializer creates `sportsbook.odds.updates` with three
+partitions if it does not already exist. Kafka data and controller metadata
+persist in separate Docker volumes. This local setup has one broker, so topic
+data is not replicated despite the three-controller quorum.
