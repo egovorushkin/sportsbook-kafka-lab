@@ -16,6 +16,64 @@ In a live Sportsbook, a single match event (e.g., a goal or red card) triggers t
 
 ## 🏗️ High-Level Architecture
 
+```mermaid
+flowchart TB
+    %% Styling
+    classDef vertx fill:#4b277a,stroke:#a270e8,stroke-width:2px,color:#fff
+    classDef kafka fill:#1a1a1a,stroke:#00a8e8,stroke-width:2px,color:#fff
+    classDef db fill:#1d4e89,stroke:#66b3ff,stroke-width:2px,color:#fff
+    classDef spring fill:#2b6e32,stroke:#77dd77,stroke-width:2px,color:#fff
+    classDef user fill:#333333,stroke:#bbbbbb,stroke-width:2px,color:#fff
+
+    User([👤 Bettor / Client]):::user
+
+    subgraph OddsService["Service 1: odds-feed-vertx (Vert.x 5)"]
+        OddsPub["OddsPublisherVerticle<br/>(Idempotent Producer, Key = matchId)"]:::vertx
+    end
+
+    subgraph KafkaCluster["Apache Kafka 4.4 (KRaft Mode — Zero ZooKeeper)"]
+        T_Odds[("sportsbook.odds.updates<br/>(3 Partitions, Ordered)")]:::kafka
+        T_State[("sportsbook.market.state<br/>(cleanup.policy=compact)")]:::kafka
+        T_DLT[("sportsbook.odds.updates.DLT<br/>(Poison Pills / Failures)")]:::kafka
+        T_Bets[("sportsbook.bets.placed<br/>(Downstream Bet Events)")]:::kafka
+    end
+
+    subgraph BettingService["Service 2: betting-engine-vertx (Vert.x 5)"]
+        OddsCons["OddsConsumerVerticle<br/>(Manual Async Commit + Backpressure)"]:::vertx
+        HttpApi["HttpApiVerticle<br/>(POST /bets, GET /odds)"]:::vertx
+        OutboxRelay["OutboxRelayVerticle<br/>(Polls & Relays Unsent Events)"]:::vertx
+    end
+
+    subgraph DataStores["Storage & Fast Cache"]
+        Redis[("Redis 7<br/>(Active Market Odds)")]:::db
+        Postgres[("PostgreSQL 17<br/>(bets + outbox tables)")]:::db
+    end
+
+    subgraph Phase2["Phase 2 Expansion: settlement-analytics-springboot"]
+        SpringConsumer["Spring Boot 4 + spring-kafka<br/>(Risk Exposure & Settlement)"]:::spring
+    end
+
+    %% Data Flows
+    OddsPub -->|"1. Publish OddsUpdated / MatchFinished"| T_Odds
+    OddsPub -.->|"Publish Latest State"| T_State
+
+    T_Odds -->|"2. Async Stream + pause/resume"| OddsCons
+    T_State -.->|"Rebuild Cache on Startup"| OddsCons
+    OddsCons -->|"3. Write Latest Odds"| Redis
+    OddsCons -->|"Route Corrupt JSON"| T_DLT
+
+    User -->|"4. POST /bets"| HttpApi
+    HttpApi -->|"5. Validate Current Odds"| Redis
+    HttpApi -->|"6. Single Reactive SQL Tx<br/>(Insert Bet + Outbox Row)"| Postgres
+
+    Postgres -->|"7. Read Pending Outbox"| OutboxRelay
+    OutboxRelay -->|"8. Publish BetPlaced"| T_Bets
+
+    T_Bets -->|"9. Consume Bets"| SpringConsumer
+    T_Odds -->|"10. Consume MatchFinished"| SpringConsumer
+
+```
+
 ```text
   [1. Odds Feed Simulator] (odds-feed-vertx)
              │
