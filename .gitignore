@@ -1,0 +1,52 @@
+# Gradle and Java build output
+.gradle/
+.gradletasknamecache
+gradle-app.setting
+build/
+out/
+*.class
+*.hprof
+hs_err_pid*
+replay_pid*
+
+# Vert.x
+.vertx/
+
+# IDE and editor files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+.metadata/
+bin/
+*.swp
+*.swo
+*~
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+local.properties
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Operating system files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
