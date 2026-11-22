@@ -73,34 +73,6 @@ flowchart TB
     T_Odds -->|"10. Consume MatchFinished"| SpringConsumer
 
 ```
-
-```text
-  [1. Odds Feed Simulator] (odds-feed-vertx)
-             │
-             ▼  Publishes OddsUpdated & MatchFinished (Key = matchId)
-  ┌───────────────────────────────────────────────────────────┐
-  │                 APACHE KAFKA 4.4 (KRaft)                  │
-  │  • sportsbook.odds.updates      (3 partitions, ordered)   │
-  │  • sportsbook.market.state      (Log-compacted state)     │
-  │  • sportsbook.bets.placed       (Downstream bet events)   │
-  │  • sportsbook.odds.updates.DLT  (Poison-pill/failed msgs) │
-  └──────────┬───────────────────────────────────────▲────────┘
-             │                                       │
-             ▼  Async consume + Backpressure         │ Relays Outbox
-  ┌──────────────────────────────────────────────────┴────────┐
-  │              BETTING ENGINE (betting-engine-vertx)        │
-  │                                                           │
-  │  [OddsConsumerVerticle] ──► [Redis 7] (Fast Active Odds)  │
-  │                                  ▲                        │
-  │  User ──► POST /bets ──► [HttpApiVerticle]                │
-  │                                  │                        │
-  │                     Single Reactive SQL Tx                │
-  │                                  ▼                        │
-  │                        [PostgreSQL 17]                    │
-  │                   (bets table + outbox table)             │
-  └───────────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## 🛠️ Tech Stack
