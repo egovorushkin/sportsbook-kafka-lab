@@ -32,6 +32,7 @@ dependencies {
     implementation("io.vertx:vertx-web")
     implementation("io.vertx:vertx-kafka-client")
     implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("io.vertx:vertx-launcher-application:$vertxVersion")
 
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.17")
@@ -42,6 +43,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.testcontainers:kafka:1.21.0")
+    testImplementation("org.testcontainers:junit-jupiter:1.21.0")
 
 }
 
