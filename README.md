@@ -119,8 +119,20 @@ Check off each milestone only after implementing the code yourself, surviving th
 ### Milestone 1: KRaft Infrastructure & Reactive Producer
 * [x] Configure `docker-compose.yml` with Apache Kafka 4.4.0 (KRaft combined mode), PostgreSQL 17, Redis 7, Redpanda Console, Prometheus, and Grafana.
 * [x] Create topic `sportsbook.odds.updates` with **3 partitions**.
-* [ ] Build `odds-feed-vertx` using `KafkaProducer` with `matchId` as the partition key, `acks=all`, and `enable.idempotence=true`.
-* [ ] **Verification:** Prove in Redpanda Console that all events for a given `matchId` land on the exact same partition while spreading across all 3 partitions.
+* [x] Build `odds-feed-vertx` using `KafkaProducer` with `matchId` as the partition key, `acks=all`, and `enable.idempotence=true`.
+  * [x] Configure the producer and publish a keyed test message visible in Redpanda Console.
+  * [x] Publish successive test updates for multiple matches with separate chains and failure handlers.
+  * [x] Simulate a failed first send: its match's next send is skipped while the other match's chain continues.
+* [x] **Verification:** Observe same-key ordering and match IDs distributed across all 3 partitions in Redpanda Console.
+  * [x] Observe four records for one match on the same partition, with offsets `0`, `1`, `2`, and `3`.
+  * [x] Observe match IDs distributed across all three partitions.
+  * [x] Verify `match-001` values `0.5`, `0.6`, and `0.7` at offsets `7`, `8`, and `9` on partition 2.
+* [x] Complete a production-incident simulation and document takeaways.
+  * [x] Observe HTTP responsiveness during a broker outage and ordered test records after broker recovery.
+  * [x] Observe failed sends and HTTP responsiveness during a longer broker outage.
+  * [x] Verify ordered delivery for match A after broker recovery during bounded in-memory retries.
+  * [x] Verify bounded in-memory recovery and document its limitations in `ARCHITECTURE_DECISIONS.md`.
+  * [x] Test shutdown cleanup with a simulated pending retry timer.
 
 ### Milestone 2: Non-Blocking Consumer & Async Offset Commits
 * [ ] Build `OddsConsumerVerticle` in `betting-engine-vertx` with `enable.auto.commit=false`.
